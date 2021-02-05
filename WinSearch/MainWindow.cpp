@@ -1,7 +1,7 @@
 ﻿#include "pch.h"
 #include "MainWindow.h"
 #include "MainWindow.g.cpp"
-
+#include "Logging.h"
 #include <winrt/Windows.UI.Core.h>
 
 
@@ -18,7 +18,9 @@ namespace winrt::WinSearch::implementation
         InitializeComponent();
         UpdateContent();
         m_searchResults = winrt::single_threaded_observable_vector<IInspectable>();
-        ExecuteAsync(L"");
+        m_allUsersSearchEnabled = EmailSearchOption().IsChecked();
+        m_contentSearchEnabled = ContentSearchOption().IsChecked();
+        m_mailSearchEnabled = EmailSearchOption().IsChecked();
     }
 
     void MainWindow::ContentSearch_Clicked(Windows::Foundation::IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
@@ -28,6 +30,7 @@ namespace winrt::WinSearch::implementation
             auto lock = m_lock.lock_exclusive();
             m_searchQueryHelper = nullptr;
         }
+        SearchTextBox().Focus(winrt::Microsoft::UI::Xaml::FocusState::Programmatic);
         ExecuteAsync(SearchTextBox().Text().c_str());
     }
 
@@ -38,9 +41,20 @@ namespace winrt::WinSearch::implementation
             auto lock = m_lock.lock_exclusive();
             m_searchQueryHelper = nullptr;
         }
+        SearchTextBox().Focus(winrt::Microsoft::UI::Xaml::FocusState::Programmatic);
         ExecuteAsync(SearchTextBox().Text().c_str());
     }
 
+    void MainWindow::AllUsersSearch_Clicked(Windows::Foundation::IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
+    {
+        m_allUsersSearchEnabled = AllUsersSearchOption().IsChecked();
+        {
+            auto lock = m_lock.lock_exclusive();
+            m_searchQueryHelper = nullptr;
+        }
+        SearchTextBox().Focus(winrt::Microsoft::UI::Xaml::FocusState::Programmatic);
+        ExecuteAsync(SearchTextBox().Text().c_str());
+    }
 
     void MainWindow::SearchTextChanged(Windows::Foundation::IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
     {
@@ -93,7 +107,7 @@ namespace winrt::WinSearch::implementation
         myString += std::to_wstring(bounds.Width);
         myString += L" Text box width ";
         myString += std::to_wstring(SearchTextBox().Width());
-        DebugTextBlock().Text(winrt::to_hstring(myString.c_str()));
+        //DebugTextBlock().Text(winrt::to_hstring(myString.c_str()));
     }
 
     bool MainWindow::CanReuseQuery(PCWSTR currentSearchText, PCWSTR newSearchText)
@@ -152,6 +166,7 @@ namespace winrt::WinSearch::implementation
             auto lock = m_lock.lock_exclusive();
             if ((m_searchQueryHelper != nullptr) && !CanReuseQuery(m_searchQueryHelper->GetQueryString(), searchText))
             {
+                m_searchQueryHelper->CancelOutstandingQueries();
                 m_searchQueryHelper = nullptr;
             }
 
@@ -165,10 +180,15 @@ namespace winrt::WinSearch::implementation
             // Just forward on to the helper with the right callback for feeding us results
             // Set up the binding for the items
             m_searchQueryHelper->Execute(searchText, m_currentQueryCookie);
+
         }
+        
+        // Wait for the query executed event
+        m_searchQueryHelper->WaitForQueryCompletedEvent();
 
         // 3) Switch back to the calling thread to update the UI
         co_await ui_thread;
+        _trace(L"UI thread OnQueryCompleted Cookie: %d\n", m_currentQueryCookie);
         OnQueryCompleted();
     }
 
