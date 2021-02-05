@@ -24,6 +24,7 @@
     <ClInclude Include="SearchQueryHelper.h" />
     <ClInclude Include="SearchResult.h" />
     <ClInclude Include="SearchResultHelpers.h" />
+    <ClInclude Include="Logging.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Assets">

@@ -90,6 +90,7 @@
     <Manifest Include="app.manifest" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Logging.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="App.h">
       <DependentUpon>App.xaml</DependentUpon>

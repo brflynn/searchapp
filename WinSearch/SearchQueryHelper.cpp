@@ -4,27 +4,36 @@
 #include <NTQuery.h>
 #include <propkey.h>
 #include <SearchResult.h>
+#include "Logging.h"
 
 using namespace winrt::Windows::Foundation::Collections;
 
 CLSID CLSID_CollatorDataSource = { 0x9E175B8B, 0xF52A, 0x11D8, 0xB9, 0xA5, 0x50, 0x50, 0x54, 0x50, 0x30, 0x30 };
 
+union FILETIME64
+{
+    INT64 quad;
+    FILETIME ft;
+};
+
 struct SearchQueryHelper : winrt::implements<SearchQueryHelper, ISearchQuery>
 {
 public:
     // ISearchQuery
-    void Init(bool async, bool contentSearchEnabled, bool mailSearchEnabled);
+    void Init(bool contentSearchEnabled, bool mailSearchEnabled, bool allUsersSearchEnabled);
     void Execute(PCWSTR searchText, DWORD cookie);
     DWORD GetCookie();
     PCWSTR GetQueryString();
     DWORD GetNumResults();
     bool GetContentSearchEnabled() { return m_contentSearchEnabled; }
-    static void CALLBACK QueryCallback(PTP_CALLBACK_INSTANCE, PVOID context, PTP_WORK);
     winrt::WinSearch::SearchResult GetResult(DWORD idx);
+    void WaitForQueryCompletedEvent();
+    void CancelOutstandingQueries();
+
+    static void CALLBACK QueryTimerCallback(PTP_CALLBACK_INSTANCE, PVOID context, PTP_TIMER);
 
 private:
     void FetchRows(_Out_ ULONGLONG* totalFetched);
-    void CancelOutstandingQueries();
     void ExecuteSync();
     void PrimeIndexAndCacheWhereId();
     void CreateSearchResult(int32_t idx, IPropertyStore* propStore);
@@ -34,20 +43,21 @@ private:
     winrt::com_ptr<IRowset> m_rowset;
     winrt::com_ptr<IRowset> m_reuseRowset;
     winrt::com_ptr<ISearchQueryHelper> m_queryHelper;
-    wil::unique_threadpool_work m_tpWork;
     wil::critical_section m_cs;
 
-    DWORD m_cookie = 0;
-    bool m_async = false;
+    DWORD m_cookie{};
     std::wstring m_searchText;
-    bool m_newQuery = false;
-    bool m_contentSearchEnabled = false;
-    bool m_mailSearchEnabled = false;
-    DWORD m_reuseWhereID = 0;
-    DWORD m_numResults = 0;
-
+    bool m_contentSearchEnabled{};
+    bool m_mailSearchEnabled{};
+    bool m_allUsersSearchEnabled{};
+    DWORD m_reuseWhereID{};
+    DWORD m_numResults{};
     winrt::Windows::Foundation::Collections::IVector<winrt::WinSearch::SearchResult> m_searchResults;
+    const DWORD m_queryTimerThreshold{ 300 };
+    wil::unique_threadpool_timer m_queryTpTimer;
+    wil::unique_event m_queryCompletedEvent;
 };
+
 
 winrt::com_ptr<ISearchQuery> CreateSearchQueryHelper()
 {
@@ -55,11 +65,16 @@ winrt::com_ptr<ISearchQuery> CreateSearchQueryHelper()
     return query;
 }
 
-void SearchQueryHelper::QueryCallback(PTP_CALLBACK_INSTANCE, PVOID context, PTP_WORK)
+void SearchQueryHelper::QueryTimerCallback(PTP_CALLBACK_INSTANCE, PVOID context, PTP_TIMER)
 {
     SearchQueryHelper* pQueryHelper = reinterpret_cast<SearchQueryHelper*>(context);
 
     pQueryHelper->ExecuteSync();
+}
+
+void SearchQueryHelper::WaitForQueryCompletedEvent()
+{
+    ::WaitForSingleObject(m_queryCompletedEvent.get(), INFINITE);
 }
 
 void SearchQueryHelper::CreateSearchResult(int32_t idx, IPropertyStore* propStore)
@@ -161,7 +176,7 @@ void SearchQueryHelper::PrimeIndexAndCacheWhereId()
 {
     // We need to generate a search query string with the search text the user entered above
     QueryStringBuilder builder;
-    std::wstring queryStr = builder.GeneratePrimingQuery(m_mailSearchEnabled);
+    std::wstring queryStr = builder.GeneratePrimingQuery(m_mailSearchEnabled, m_allUsersSearchEnabled);
 
     winrt::com_ptr<ICommandText> cmdTxt;
     GetCommandText(cmdTxt);
@@ -182,6 +197,7 @@ void SearchQueryHelper::ExecuteSync()
     {
         auto lock = m_cs.lock();
 
+        _trace(L"Executing query: %d\n", m_cookie);
         // We need to generate a search query string with the search text the user entered above
         if (m_rowset != nullptr)
         {
@@ -194,7 +210,7 @@ void SearchQueryHelper::ExecuteSync()
         m_rowset = nullptr;
 
         QueryStringBuilder builder;
-        std::wstring queryStr = builder.GenerateQuery(m_searchText.c_str(), m_contentSearchEnabled, m_mailSearchEnabled, m_reuseWhereID);
+        std::wstring queryStr = builder.GenerateQuery(m_searchText.c_str(), m_contentSearchEnabled, m_mailSearchEnabled, m_allUsersSearchEnabled, m_reuseWhereID);
 
         winrt::com_ptr<ICommandText> cmdTxt;
         GetCommandText(cmdTxt);
@@ -213,6 +229,9 @@ void SearchQueryHelper::ExecuteSync()
         FetchRows(&rowsFetched);
 
         m_numResults = static_cast<DWORD>(rowsFetched);
+
+        // We're done...
+        m_queryCompletedEvent.SetEvent();
     }
     CATCH_LOG();
 }
@@ -222,23 +241,32 @@ void SearchQueryHelper::CancelOutstandingQueries()
     // Are we currently doing work? If so, let's cancel
     {
         auto lock = m_cs.lock();
-        m_newQuery = true;
+        SetThreadpoolTimer(m_queryTpTimer.get(), nullptr, 0, 0);
+        WaitForThreadpoolTimerCallbacks(m_queryTpTimer.get(), TRUE);
+        m_queryTpTimer.reset(nullptr);
     }
 }
 
 void SearchQueryHelper::Execute(PCWSTR searchText, DWORD cookie)
 {
-    m_searchText = searchText;
-    m_cookie = cookie;
-    if (m_async)
-    {
-        ::SubmitThreadpoolWork(m_tpWork.get());
-    }
-    else
-    {
-        ExecuteSync();
-    }
+    // We should try to coaelse queries here so that we aren't firing one for every specific key entered...
+    // If a query comes in within our threshold let's kill the firing one and create a new one
+    auto lock = m_cs.lock();
 
+    if (m_queryTpTimer.get() != nullptr)
+    {
+        // We cancel the outstanding query callback and queue a new one every time
+        SetThreadpoolTimer(m_queryTpTimer.get(), nullptr, 0, 0);
+        WaitForThreadpoolTimerCallbacks(m_queryTpTimer.get(), TRUE);
+        m_searchText = searchText;
+        m_cookie = cookie;
+
+        // queue query
+        FILETIME64 ft = { -static_cast<INT64>(m_queryTimerThreshold) * 10000 };
+        FILETIME fireTime = ft.ft;
+        _trace(L"Queue query: %d\n", m_cookie);
+        SetThreadpoolTimer(m_queryTpTimer.get(), &fireTime, 0, 0);
+    }
 }
 
 void SearchQueryHelper::GetCommandText(winrt::com_ptr<ICommandText> & cmdText)
@@ -259,16 +287,19 @@ void SearchQueryHelper::GetCommandText(winrt::com_ptr<ICommandText> & cmdText)
     cmdText = unkCmdPtr.as<ICommandText>();
 }
 
-void SearchQueryHelper::Init(bool async, bool contentSearchEnabled, bool mailSearchEnabled)
+void SearchQueryHelper::Init(bool contentSearchEnabled, bool mailSearchEnabled, bool allUsersSearchEnabled)
 {
     // Create all the objects we will want cached
     try
     {
-        m_async = async;
         m_contentSearchEnabled = contentSearchEnabled;
         m_mailSearchEnabled = mailSearchEnabled;
-        m_tpWork.reset(CreateThreadpoolWork(SearchQueryHelper::QueryCallback, reinterpret_cast<void*>(this), nullptr));
-        THROW_LAST_ERROR_IF_NULL(m_tpWork.get());
+        m_allUsersSearchEnabled = allUsersSearchEnabled;
+        m_queryTpTimer.reset(CreateThreadpoolTimer(SearchQueryHelper::QueryTimerCallback, reinterpret_cast<void*>(this), nullptr));
+        THROW_LAST_ERROR_IF_NULL(m_queryTpTimer.get());
+
+        m_queryCompletedEvent.create();
+        THROW_LAST_ERROR_IF_NULL(m_queryCompletedEvent.get());
 
         // Execute a synchronous query on file/mapi items to prime the index and keep that handle around
         PrimeIndexAndCacheWhereId();

@@ -76,7 +76,7 @@ namespace winrt::WinSearch::implementation
                     winrt::Windows::System::Launcher::LaunchUriAsync(uri, options).get();
                 }
             }
-            catch (winrt::hresult_error const& ex)
+            catch (winrt::hresult_error const&)
             {
             }
         }

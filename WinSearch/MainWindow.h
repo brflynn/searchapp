@@ -19,8 +19,10 @@ namespace winrt::WinSearch::implementation
         void MainWindowSizeChanged(Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::WindowSizeChangedEventArgs const& handler);
         void ContentSearch_Clicked(Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void EmailSearch_Clicked(Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void AllUsersSearch_Clicked(Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void WindowsSearchSettings_Clicked(Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void SearchResults_ItemClicked(Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
+
 
     private:
         void OnQueryCompleted();
@@ -33,8 +35,9 @@ namespace winrt::WinSearch::implementation
         DWORD m_currentQueryCookie = 10;
         void UpdateContent();
         void UpdateResults();
-        bool m_contentSearchEnabled = false;
-        bool m_mailSearchEnabled = false;
+        bool m_contentSearchEnabled{};
+        bool m_mailSearchEnabled{};
+        bool m_allUsersSearchEnabled{};
         winrt::Windows::Foundation::Collections::IVector<IInspectable> m_searchResults;
     };
 }

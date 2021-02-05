@@ -15,7 +15,8 @@
                 <Button.Flyout>
                     <MenuFlyout>
                         <ToggleMenuFlyoutItem Text="Search File Contents" IsChecked="False" Click="ContentSearch_Clicked" x:Name="ContentSearchOption"/>
-                        <ToggleMenuFlyoutItem Text="Search Emails" IsChecked="False" IsEnabled="False" Click="EmailSearch_Clicked" x:Name="EmailSearchOption"/>
+                        <ToggleMenuFlyoutItem Text="Search Emails" IsChecked="False" IsEnabled="True" Click="EmailSearch_Clicked" x:Name="EmailSearchOption"/>
+                        <ToggleMenuFlyoutItem Text="Search Files Across All Users" IsChecked="False" IsEnabled="True" Click="AllUsersSearch_Clicked" x:Name="AllUsersSearchOption"/>
                         <MenuFlyoutSeparator/>
                         <MenuFlyoutItem Icon="Setting" Text="Change Windows Search Settings" Click="WindowsSearchSettings_Clicked" x:Name="WindowsSearchSettingsOption"/>
                     </MenuFlyout>
