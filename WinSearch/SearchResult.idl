@@ -1,0 +1,14 @@
+namespace WinSearch
+{
+    runtimeclass SearchResult
+    {
+        String ItemDisplayName;
+        String ItemUrl;
+        String LaunchUri;
+        Windows.Foundation.IAsyncAction LaunchAsync();
+        Boolean IsFolder();
+        Boolean IsMail();
+        Windows.Storage.FileProperties.StorageItemThumbnail Thumbnail;
+        Microsoft.UI.Xaml.Media.Imaging.BitmapImage ItemImage;
+    }
+}
