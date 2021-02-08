@@ -8,6 +8,7 @@ namespace WinSearch
         Windows.Foundation.IAsyncAction LaunchAsync();
         Boolean IsFolder();
         Boolean IsMail();
+        Boolean CanDisplay();
         Windows.Storage.FileProperties.StorageItemThumbnail Thumbnail;
         Microsoft.UI.Xaml.Media.Imaging.BitmapImage ItemImage;
     }

@@ -25,6 +25,7 @@ namespace winrt::WinSearch::implementation
 
 
     private:
+        void CacheSearchSettingState();
         void OnQueryCompleted();
         winrt::Windows::Foundation::IAsyncAction ExecuteAsync(PCWSTR searchText);
         winrt::Windows::Foundation::IAsyncAction LaunchItemAsync(winrt::WinSearch::SearchResult const& result);
@@ -34,7 +35,6 @@ namespace winrt::WinSearch::implementation
         wil::srwlock m_lock;
         DWORD m_currentQueryCookie = 10;
         void UpdateContent();
-        void UpdateResults();
         bool m_contentSearchEnabled{};
         bool m_mailSearchEnabled{};
         bool m_allUsersSearchEnabled{};

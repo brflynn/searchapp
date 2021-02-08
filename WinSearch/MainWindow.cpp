@@ -18,9 +18,7 @@ namespace winrt::WinSearch::implementation
         InitializeComponent();
         UpdateContent();
         m_searchResults = winrt::single_threaded_observable_vector<IInspectable>();
-        m_allUsersSearchEnabled = EmailSearchOption().IsChecked();
-        m_contentSearchEnabled = ContentSearchOption().IsChecked();
-        m_mailSearchEnabled = EmailSearchOption().IsChecked();
+        CacheSearchSettingState();
     }
 
     void MainWindow::ContentSearch_Clicked(Windows::Foundation::IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
@@ -76,11 +74,6 @@ namespace winrt::WinSearch::implementation
     void MainWindow::MainWindowSizeChanged(IInspectable const&, Microsoft::UI::Xaml::WindowSizeChangedEventArgs const&)
     {
         UpdateContent();
-    }
-
-    void MainWindow::UpdateResults()
-    {
-        
     }
 
     void MainWindow::SearchResults_ItemClicked(Windows::Foundation::IInspectable const&, Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args)
@@ -146,6 +139,13 @@ namespace winrt::WinSearch::implementation
         return false;
     }
 
+    void MainWindow::CacheSearchSettingState()
+    {
+        m_allUsersSearchEnabled = AllUsersSearchOption().IsChecked() && AllUsersSearchOption().IsEnabled();
+        m_contentSearchEnabled = ContentSearchOption().IsChecked() && ContentSearchOption().IsEnabled();
+        m_mailSearchEnabled = EmailSearchOption().IsChecked() && EmailSearchOption().IsEnabled();
+    }
+
     IAsyncAction MainWindow::ExecuteAsync(PCWSTR searchText)
     {
         // Queries will come in as soon as the user begins typing...so we want to do a few things here to make sure we don't block
@@ -155,8 +155,7 @@ namespace winrt::WinSearch::implementation
 
         {
             auto lock = m_lock.lock_exclusive();
-            m_contentSearchEnabled = ContentSearchOption().IsChecked();
-            m_mailSearchEnabled = EmailSearchOption().IsChecked();
+            CacheSearchSettingState();
             m_currentQueryCookie++;
         }
         // 2) Execute the query on a background thread
@@ -174,7 +173,7 @@ namespace winrt::WinSearch::implementation
             {
                 // Create a new one, give it a new cookie, and put it into our map
                 m_searchQueryHelper = CreateSearchQueryHelper();
-                m_searchQueryHelper->Init(false, m_contentSearchEnabled, m_mailSearchEnabled);
+                m_searchQueryHelper->Init(m_contentSearchEnabled, m_mailSearchEnabled, m_allUsersSearchEnabled);
             }
 
             // Just forward on to the helper with the right callback for feeding us results
@@ -189,7 +188,17 @@ namespace winrt::WinSearch::implementation
         // 3) Switch back to the calling thread to update the UI
         co_await ui_thread;
         _trace(L"UI thread OnQueryCompleted Cookie: %d\n", m_currentQueryCookie);
-        OnQueryCompleted();
+        size_t searchTextLen = wcslen(searchText);
+        _trace(L"SearchTextLength: %d", searchTextLen);
+        if (searchTextLen > 0)
+        {
+            OnQueryCompleted();
+        }
+        else
+        {
+            // Just clear all the results from the UI
+            SearchResults().ItemsSource(nullptr);
+        }
     }
 
     void MainWindow::OnQueryCompleted()

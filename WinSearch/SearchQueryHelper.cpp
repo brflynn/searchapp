@@ -36,7 +36,7 @@ private:
     void FetchRows(_Out_ ULONGLONG* totalFetched);
     void ExecuteSync();
     void PrimeIndexAndCacheWhereId();
-    void CreateSearchResult(int32_t idx, IPropertyStore* propStore);
+    void CreateSearchResult(IPropertyStore* propStore);
     void GetCommandText(winrt::com_ptr<ICommandText> & cmdText);
     DWORD GetReuseWhereId(IRowset* rowset);
 
@@ -53,7 +53,7 @@ private:
     DWORD m_reuseWhereID{};
     DWORD m_numResults{};
     winrt::Windows::Foundation::Collections::IVector<winrt::WinSearch::SearchResult> m_searchResults;
-    const DWORD m_queryTimerThreshold{ 300 };
+    const DWORD m_queryTimerThreshold{ 250 };
     wil::unique_threadpool_timer m_queryTpTimer;
     wil::unique_event m_queryCompletedEvent;
 };
@@ -77,7 +77,7 @@ void SearchQueryHelper::WaitForQueryCompletedEvent()
     ::WaitForSingleObject(m_queryCompletedEvent.get(), INFINITE);
 }
 
-void SearchQueryHelper::CreateSearchResult(int32_t idx, IPropertyStore* propStore)
+void SearchQueryHelper::CreateSearchResult(IPropertyStore* propStore)
 {
     SmartPropVariant itemNameDisplay;
     THROW_IF_FAILED(propStore->GetValue(PKEY_ItemNameDisplay, itemNameDisplay.put()));
@@ -104,12 +104,16 @@ void SearchQueryHelper::CreateSearchResult(int32_t idx, IPropertyStore* propStor
     bool isMail = !convertedToFilePath;
 
     // Create the actual result object
-    m_searchResults.InsertAt(idx, winrt::make<winrt::WinSearch::implementation::SearchResult>(
+    auto searchResult = winrt::make<winrt::WinSearch::implementation::SearchResult>(
         itemNameDisplay.GetString().c_str(),
         itemUrl.GetString().c_str(),
         filePath.c_str(),
         isMail,
-        isFolder));
+        isFolder);
+    if (searchResult.CanDisplay())
+    {
+        m_searchResults.Append(searchResult);
+    }
 }
 
 winrt::WinSearch::SearchResult SearchQueryHelper::GetResult(DWORD idx)
@@ -141,7 +145,7 @@ void SearchQueryHelper::FetchRows(_Out_ ULONGLONG* totalFetched)
             winrt::com_ptr<IPropertyStore> propStore = unknown.as<IPropertyStore>();
 
             // Get the properties we asked for...and cache them in our result store
-            CreateSearchResult(i, propStore.get());
+            CreateSearchResult(propStore.get());
         }
 
         THROW_IF_FAILED(m_rowset->ReleaseRows(rowCountReturned, rowReturned, nullptr, nullptr, nullptr));
@@ -228,12 +232,12 @@ void SearchQueryHelper::ExecuteSync()
         ULONGLONG rowsFetched = 0;
         FetchRows(&rowsFetched);
 
-        m_numResults = static_cast<DWORD>(rowsFetched);
-
-        // We're done...
-        m_queryCompletedEvent.SetEvent();
+        m_numResults = m_searchResults.Size();
     }
     CATCH_LOG();
+
+    // We're done...
+    m_queryCompletedEvent.SetEvent();
 }
 
 void SearchQueryHelper::CancelOutstandingQueries()
