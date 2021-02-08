@@ -43,6 +43,7 @@ namespace winrt::WinSearch::implementation
         winrt::Windows::Foundation::IAsyncAction LaunchAsync();
         bool IsFolder();
         bool IsMail();
+        bool CanDisplay();
         winrt::Windows::Storage::FileProperties::StorageItemThumbnail Thumbnail();
         void Thumbnail(winrt::Windows::Storage::FileProperties::StorageItemThumbnail const& value);
         winrt::Microsoft::UI::Xaml::Media::Imaging::BitmapImage ItemImage();
@@ -55,6 +56,7 @@ namespace winrt::WinSearch::implementation
         hstring m_launchUri;
         bool m_isMail = false;
         bool m_isFolder = false;
+        bool m_canDisplay{true};
         winrt::Windows::Storage::FileProperties::StorageItemThumbnail m_thumbnail = nullptr;
     };
 }

@@ -17,6 +17,11 @@ namespace winrt::WinSearch::implementation
     }
     hstring SearchResult::ItemUrl()
     {
+        // Special overrides for files
+        if (!m_isMail)
+        {
+            return m_launchUri;
+        }
         return m_itemUrl;
     }
     void SearchResult::ItemUrl(hstring const&)
@@ -40,6 +45,11 @@ namespace winrt::WinSearch::implementation
     bool SearchResult::IsMail()
     {
         return m_isMail;
+    }
+
+    bool SearchResult::CanDisplay()
+    {
+        return m_canDisplay;
     }
 
     winrt::Windows::Foundation::IAsyncAction SearchResult::LaunchAsync()
@@ -102,6 +112,10 @@ namespace winrt::WinSearch::implementation
                 }
                 catch (winrt::hresult_error const& ex)
                 {
+                    if (ex.code() == E_ACCESSDENIED)
+                    {
+                        m_canDisplay = false;
+                    }
                     m_thumbnail = nullptr;
                 }
             }
@@ -121,6 +135,10 @@ namespace winrt::WinSearch::implementation
                 }
                 catch (winrt::hresult_error const& ex)
                 {
+                    if (ex.code() == E_ACCESSDENIED)
+                    {
+                        m_canDisplay = false;
+                    }
                     m_thumbnail = nullptr;
                 }
             }

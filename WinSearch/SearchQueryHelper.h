@@ -27,7 +27,7 @@ struct QueryStringBuilder
     const PCWSTR c_primeQuery = L"SELECT TOP 30 System.ItemUrl, System.ItemNameDisplay, path, System.Search.EntryID, System.Kind, System.KindText, System.Search.GatherTime FROM SystemIndex WHERE";
     const PCWSTR c_scopeFileConditions = L" SCOPE='file:'";
     const PCWSTR c_scopeEmailConditions = L" OR SCOPE='mapi:' OR SCOPE='mapi16:'";
-    const PCWSTR c_orderConditions = L" ORDER BY System.DateModified, System.ItemNameDisplay DESC";
+    const PCWSTR c_orderConditions = L" ORDER BY System.Message.DateReceived, System.DateModified, System.ItemNameDisplay DESC";
     std::wstring m_usersScope;
 
     std::wstring GenerateSingleUserScope()
@@ -71,7 +71,7 @@ struct QueryStringBuilder
 
         if (!allUsersSearchEnabled)
         {
-            queryStr += m_usersScope;
+            //queryStr += m_usersScope;
         }
 
         queryStr += L")";
@@ -120,6 +120,7 @@ struct QueryStringBuilder
 
         queryStr += c_orderConditions;
 
+        _trace(L"SQL: %s", queryStr.c_str());
         return queryStr;
     }
 
