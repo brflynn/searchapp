@@ -19,6 +19,7 @@ namespace winrt::WinSearch::implementation
         UpdateContent();
         m_searchResults = winrt::single_threaded_observable_vector<IInspectable>();
         CacheSearchSettingState();
+        ExecuteAsync(L"");
     }
 
     void MainWindow::ContentSearch_Clicked(Windows::Foundation::IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
