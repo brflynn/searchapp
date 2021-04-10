@@ -53,7 +53,7 @@ private:
     DWORD m_reuseWhereID{};
     DWORD m_numResults{};
     winrt::Windows::Foundation::Collections::IVector<winrt::WinSearch::SearchResult> m_searchResults;
-    const DWORD m_queryTimerThreshold{ 250 };
+    const DWORD m_queryTimerThreshold{ 150 };
     wil::unique_threadpool_timer m_queryTpTimer;
     wil::unique_event m_queryCompletedEvent;
 };
