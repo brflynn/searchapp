@@ -22,12 +22,14 @@ namespace winrt::WinSearch::implementation
         void AllUsersSearch_Clicked(Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void WindowsSearchSettings_Clicked(Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void SearchResults_ItemClicked(Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
+        void PropertyAnalysis_Clicked(Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
 
     private:
         void CacheSearchSettingState();
         void OnQueryCompleted();
         winrt::Windows::Foundation::IAsyncAction ExecuteAsync(PCWSTR searchText);
+        winrt::Windows::Foundation::IAsyncAction GeneratePropertyAnalysisAsync();
         winrt::Windows::Foundation::IAsyncAction LaunchItemAsync(winrt::WinSearch::SearchResult const& result);
         winrt::Windows::Foundation::IAsyncAction GetImageForResult(winrt::WinSearch::SearchResult const& result);
         bool CanReuseQuery(PCWSTR newSearchText, PCWSTR currentSearchText);

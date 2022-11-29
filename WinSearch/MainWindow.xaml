@@ -22,6 +22,8 @@
                     </MenuFlyout>
                 </Button.Flyout>
             </Button>
+            <Button Content="Generate Static Property Analysis" Margin="10,10,10,10" x:Name="PropertyAnalysis" Click="PropertyAnalysis_Clicked">
+            </Button>
         </StackPanel>
         <TextBox 
             x:Name="SearchTextBox"
@@ -31,9 +33,6 @@
             HorizontalAlignment="Stretch"
             FontSize="18">
         </TextBox>
-        <TextBlock
-            x:Name="DebugTextBlock">
-        </TextBlock>
 
         <ListView
             x:Name="SearchResults"
