@@ -16,8 +16,10 @@
     <ClCompile Include="App.cpp" />
     <ClCompile Include="MainWindow.cpp" />
     <ClCompile Include="$(GeneratedFilesDir)module.g.cpp" />
-    <ClCompile Include="SearchQueryHelper.cpp" />
+    <ClCompile Include="SearchUXQuery.cpp" />
     <ClCompile Include="SearchResult.cpp" />
+    <ClCompile Include="StaticPropertyAnalysisQuery.cpp" />
+    <ClCompile Include="SearchQueryBase.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />

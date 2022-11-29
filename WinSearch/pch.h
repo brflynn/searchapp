@@ -3,6 +3,12 @@
 #include <unknwn.h>
 #include <restrictederrorinfo.h>
 #include <hstring.h>
+#include <string>
+#include <sstream>
+#include <iostream>
+#include <vector>
+#include <fstream>
+
 
 // Undefine GetCurrentTime macro to prevent
 // conflict with Storyboard::GetCurrentTime
@@ -12,6 +18,7 @@
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.ApplicationModel.Activation.h>
 #include <winrt/Windows.System.h>
+#include <winrt/Windows.Storage.h>
 #include <winrt/Microsoft.UI.Composition.h>
 #include <winrt/Microsoft.UI.Xaml.h>
 #include <winrt/Microsoft.UI.Xaml.Controls.h>
@@ -29,3 +36,4 @@
 
 #include <oledb.h>
 #include <SearchAPI.h>
+#include <PropVarUtil.h>
