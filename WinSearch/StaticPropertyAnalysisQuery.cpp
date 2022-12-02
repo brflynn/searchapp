@@ -185,20 +185,12 @@ HRESULT StaticPropertyAnalysisQuery::ExecuteSingleQuerySync(std::vector<std::wst
     queryBuilder.SetProperties(propVec);
     queryBuilder.SetScope(c_scopePropertyAnalysisConditions);
     std::wstring queryStr = queryBuilder.GeneratePrimingQuery(false, false);
-    winrt::com_ptr<ICommandText> cmdTxt;
-    GetCommandText(cmdTxt);
-    RETURN_IF_FAILED(cmdTxt->SetCommandText(DBGUID_DEFAULT, queryStr.c_str()));
 
-    DBROWCOUNT rowCount = 0;
-    winrt::com_ptr<IUnknown> unkRowsetPtr;
-    RETURN_IF_FAILED(cmdTxt->Execute(nullptr, IID_IRowset, nullptr, &rowCount, unkRowsetPtr.put()));
+    ExecuteQueryStringSync(queryStr.c_str());
 
     if (fetchRows)
     {
-        m_rowset = unkRowsetPtr.as<IRowset>();
-
-        ULONGLONG rowsFetched = 0;
-        FetchRows(&rowsFetched);
+        RealizeRowset();
     }
 
     return S_OK;
@@ -316,7 +308,7 @@ void StaticPropertyAnalysisQuery::ExecuteSync()
         // start with the average, followed by the inverted properties
         FileIO::AppendTextAsync(GetAnalysisFile(), L"\n\nAverage Properties Per File Type\n").get();
 
-        m_numResults = m_items.size();
+        m_numResults = static_cast<DWORD>(m_items.size());
         for (auto it : m_typePropertiesMap)
         {
             float avgPropCount = static_cast<float>(it.second.totalPropertyCount / m_numResults);

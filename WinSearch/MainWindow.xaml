@@ -10,11 +10,11 @@
     SizeChanged="MainWindowSizeChanged">
     
     <StackPanel Orientation="Vertical" VerticalAlignment="Top">
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Left">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Right">
             <Button Content="Options" Margin="10,10,10,10">
                 <Button.Flyout>
                     <MenuFlyout>
-                        <ToggleMenuFlyoutItem Text="Search File Contents" IsChecked="False" Click="ContentSearch_Clicked" x:Name="ContentSearchOption"/>
+                        <ToggleMenuFlyoutItem Text="Search File Contents" IsChecked="True" Click="ContentSearch_Clicked" x:Name="ContentSearchOption"/>
                         <ToggleMenuFlyoutItem Text="Search Emails" IsChecked="False" IsEnabled="False" Click="EmailSearch_Clicked" x:Name="EmailSearchOption"/>
                         <ToggleMenuFlyoutItem Text="Search Files Across All Users" IsChecked="False" IsEnabled="False" Click="AllUsersSearch_Clicked" x:Name="AllUsersSearchOption"/>
                         <MenuFlyoutSeparator/>
@@ -29,15 +29,17 @@
             x:Name="SearchTextBox"
             TextChanged="SearchTextChanged"
             PlaceholderText="start typing to search"
-            HorizontalContentAlignment="Stretch"
-            HorizontalAlignment="Stretch"
-            FontSize="18">
+            MinWidth="300"
+            MaxWidth="1000"
+            FontSize="20">
         </TextBox>
 
         <ListView
             x:Name="SearchResults"
-            HorizontalAlignment="Stretch"
-            VerticalAlignment="Stretch"
+            MinWidth="300"
+            MaxWidth="1000"
+            MinHeight="500"
+            MaxHeight="1000"
             Width="Auto"
             Height="Auto"
             IsItemClickEnabled="True"

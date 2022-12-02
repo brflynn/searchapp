@@ -31,6 +31,7 @@ protected:
 
     void FetchRows(_Out_ ULONGLONG* totalFetched);
     void ExecuteQueryStringSync(PCWSTR queryStr);
+    void RealizeRowset();
     void PrimeIndexAndCacheWhereId();
     void GetCommandText(winrt::com_ptr<ICommandText>& cmdText);
     DWORD GetReuseWhereId(IRowset* rowset);
@@ -87,7 +88,7 @@ struct QueryStringBuilder
         for (const auto& user : users)
         {
             std::wstring foundUserProfileDir(winrt::Windows::Storage::UserDataPaths::GetForUser(user).Profile());
-            _tracelog(L"Found user profile: %s\n", foundUserProfileDir.c_str());
+            _debugout(L"Found user profile: %s\n", foundUserProfileDir.c_str());
             scopeStr += L" AND SCOPE <> ";
             scopeStr += foundUserProfileDir.c_str();
         }
@@ -127,7 +128,7 @@ struct QueryStringBuilder
     {
         if (!allUsersSearchEnabled && m_usersScope.empty())
         {
-            m_usersScope = GenerateSingleUserScope();
+            //m_usersScope = GenerateSingleUserScope();
         }
 
         std::wstring queryStr(c_select);
@@ -165,7 +166,7 @@ struct QueryStringBuilder
         std::wstring queryStr(GenerateSelectQueryWithScope(mailSearchEnabled, allUsersSearchEnabled));
         queryStr += c_orderConditions;
 
-        _tracelog(L"\nPriming SQL: %ws", queryStr.c_str());
+        _debugout(L"\nPriming SQL: %ws", queryStr.c_str());
         return queryStr;
     }
 
@@ -226,7 +227,7 @@ struct QueryStringBuilder
 
         queryStr += c_orderConditions;
 
-        _tracelog(L"SQL: %ws", queryStr.c_str());
+        _debugout(L"SQL: %ws", queryStr.c_str());
         return queryStr;
     }
 

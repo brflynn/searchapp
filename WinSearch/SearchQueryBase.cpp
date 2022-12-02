@@ -81,20 +81,25 @@ void SearchQueryBase::PrimeIndexAndCacheWhereId()
     m_reuseWhereID = GetReuseWhereId(m_reuseRowset.get());
 }
 
+void SearchQueryBase::RealizeRowset()
+{
+    try
+    {
+        OnPreFetchRows();
+
+        ULONGLONG rowsFetched = 0;
+        FetchRows(&rowsFetched);
+    }
+    CATCH_LOG();
+
+    OnPostFetchRows();
+}
+
 void SearchQueryBase::ExecuteQueryStringSync(PCWSTR queryStr)
 {
     try
     {
         auto lock = m_cs.lock();
-
-        // We need to generate a search query string with the search text the user entered above
-        if (m_rowset != nullptr)
-        {
-            // We have a previous rowset, this means the user is typing and we should store this
-            // recapture the where ID from this so the next ExecuteSync call will be faster
-            m_reuseRowset = m_rowset;
-            m_reuseWhereID = GetReuseWhereId(m_reuseRowset.get());
-        }
 
         m_rowset = nullptr;
 
@@ -108,14 +113,16 @@ void SearchQueryBase::ExecuteQueryStringSync(PCWSTR queryStr)
 
         m_rowset = unkRowsetPtr.as<IRowset>();
 
-        OnPreFetchRows();
-
-        ULONGLONG rowsFetched = 0;
-        FetchRows(&rowsFetched);
+        // We need to generate a search query string with the search text the user entered above
+        if (m_rowset != nullptr)
+        {
+            // We have a previous rowset, this means the user is typing and we should store this
+            // recapture the where ID from this so the next ExecuteSync call will be faster
+            m_reuseRowset = m_rowset;
+            m_reuseWhereID = GetReuseWhereId(m_reuseRowset.get());
+        }
     }
     CATCH_LOG();
-
-    OnPostFetchRows();
 }
 
 void SearchQueryBase::GetCommandText(winrt::com_ptr<ICommandText>& cmdText)

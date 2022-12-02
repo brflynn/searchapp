@@ -47,7 +47,7 @@ private:
     bool m_mailSearchEnabled{};
     bool m_allUsersSearchEnabled{};
     winrt::Windows::Foundation::Collections::IVector<winrt::WinSearch::SearchResult> m_searchResults;
-    const DWORD m_queryTimerThreshold{ 85 };
+    const DWORD m_queryTimerThreshold{ 250 };
     wil::unique_threadpool_timer m_queryTpTimer;
     wil::unique_event m_queryCompletedEvent;
 };
@@ -62,7 +62,9 @@ void SearchUXQueryHelper::QueryTimerCallback(PTP_CALLBACK_INSTANCE, PVOID contex
 {
     SearchUXQueryHelper* pQueryHelper = reinterpret_cast<SearchUXQueryHelper*>(context);
 
+    // execute query
     pQueryHelper->ExecuteSyncInternal();
+    pQueryHelper->m_queryCompletedEvent.SetEvent();
 }
 
 void SearchUXQueryHelper::WaitForQueryCompletedEvent()
@@ -124,7 +126,6 @@ void SearchUXQueryHelper::OnPostFetchRows()
 {
     // We're done...
     m_numResults = m_searchResults.Size(); // num results is really how many we display
-    m_queryCompletedEvent.SetEvent();
 }
 
 void SearchUXQueryHelper::OnFetchRowCallback(IPropertyStore* propStore)
@@ -139,6 +140,7 @@ void SearchUXQueryHelper::ExecuteSyncInternal()
         QueryStringBuilder builder;
         std::wstring queryStr = builder.GenerateQuery(m_searchText.c_str(), m_contentSearchEnabled, m_mailSearchEnabled, m_allUsersSearchEnabled, m_reuseWhereID);
         ExecuteQueryStringSync(queryStr.c_str());
+        RealizeRowset();
     }
     CATCH_LOG();
 }
@@ -158,8 +160,6 @@ void SearchUXQueryHelper::Execute(PCWSTR searchText, DWORD cookie)
 {
     // We should try to coaelse queries here so that we aren't firing one for every specific key entered...
     // If a query comes in within our threshold let's kill the firing one and create a new one
-    auto lock = m_cs.lock();
-
     if (m_queryTpTimer.get() != nullptr)
     {
         // We cancel the outstanding query callback and queue a new one every time
@@ -168,10 +168,10 @@ void SearchUXQueryHelper::Execute(PCWSTR searchText, DWORD cookie)
         m_searchText = searchText;
         m_cookie = cookie;
 
-        // queue query
+        // queue realize rows
         FILETIME64 ft = { -static_cast<INT64>(m_queryTimerThreshold) * 10000 };
         FILETIME fireTime = ft.ft;
-        _tracelog(L"Queue query: %d\n", m_cookie);
+        _debugout(L"Queue draw query event: %d\n", m_cookie);
         SetThreadpoolTimer(m_queryTpTimer.get(), &fireTime, 0, 0);
     }
 }
