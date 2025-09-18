@@ -20,6 +20,7 @@
     <ClCompile Include="SearchResult.cpp" />
     <ClCompile Include="StaticPropertyAnalysisQuery.cpp" />
     <ClCompile Include="SearchQueryBase.cpp" />
+    <ClCompile Include="GlobalHotkeyManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -27,6 +28,7 @@
     <ClInclude Include="SearchResult.h" />
     <ClInclude Include="SearchResultHelpers.h" />
     <ClInclude Include="Logging.h" />
+    <ClInclude Include="GlobalHotkeyManager.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Assets">

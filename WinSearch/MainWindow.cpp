@@ -3,6 +3,9 @@
 #include "MainWindow.g.cpp"
 #include "Logging.h"
 #include <winrt/Windows.UI.Core.h>
+#include <winrt/Windows.System.h>
+#include <Windows.h>
+#include <microsoft.ui.xaml.window.h>
 
 
 using namespace winrt;
@@ -61,6 +64,14 @@ namespace winrt::WinSearch::implementation
         {
             // Just send the search query helper...it will do the work asynchronously
             PCWSTR text = SearchTextBox().Text().c_str();
+            
+            // Hide results container while searching
+            if (wcslen(text) == 0)
+            {
+                ResultsContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+                QuickActions().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+            }
+            
             ExecuteAsync(text);
         }
         CATCH_LOG();
@@ -85,27 +96,9 @@ namespace winrt::WinSearch::implementation
         LaunchItemAsync(result);
     }
 
-    void MainWindow::PropertyAnalysis_Clicked(Windows::Foundation::IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
-    {
-        GeneratePropertyAnalysisAsync();
-    }
-
     IAsyncAction MainWindow::GeneratePropertyAnalysisAsync()
     {
-        winrt::apartment_context ui_thread;
-
-        std::wstring buttonText = winrt::unbox_value<winrt::hstring>(PropertyAnalysis().Content()).c_str();
-        PropertyAnalysis().Content(winrt::box_value(L"Processing..."));
-        PropertyAnalysis().IsEnabled(false);
-        co_await winrt::resume_background();
-
-        winrt::com_ptr<ISearchQuery> queryObj = CreateStaticPropertyAnalysisQuery();
-        queryObj->Init();
-        queryObj->ExecuteSync();
-
-        co_await ui_thread;
-        PropertyAnalysis().Content(winrt::box_value(winrt::hstring(buttonText.c_str())));
-        PropertyAnalysis().IsEnabled(true);
+        // Property analysis functionality - simplified for overlay
         co_return;
     }
 
@@ -239,15 +232,99 @@ namespace winrt::WinSearch::implementation
                 // If we are here, we are returning results on the same user input
                 DWORD numResults = m_searchQueryHelper->GetNumResults();
                 m_searchResults = winrt::single_threaded_observable_vector<IInspectable>();
-                //SearchResults().ItemsSource(m_searchResults);
 
                 for (DWORD i = 0; i < numResults; ++i)
                 {
                     WinSearch::SearchResult result = m_searchQueryHelper.as<ISearchUXQuery>()->GetResult(i);
                     m_searchResults.Append(result);
                 }
+                
                 SearchResults().ItemsSource(m_searchResults);
+                
+                // Show results container if we have results, hide if empty
+                if (numResults > 0)
+                {
+                    ResultsContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
+                    QuickActions().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
+                }
+                else
+                {
+                    ResultsContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+                    QuickActions().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+                }
             }
+        }
+    }
+
+    void MainWindow::FocusSearchBox()
+    {
+        SearchTextBox().Focus(winrt::Microsoft::UI::Xaml::FocusState::Programmatic);
+        SearchTextBox().SelectAll();
+    }
+
+    void MainWindow::ShowWindow()
+    {
+        if (!m_isVisible)
+        {
+            // Make window full screen and borderless
+            auto windowNative = this->try_as<::IWindowNative>();
+            if (windowNative)
+            {
+                HWND hwnd;
+                windowNative->get_WindowHandle(&hwnd);
+                if (hwnd)
+                {
+                    // Get screen dimensions
+                    int screenWidth = GetSystemMetrics(SM_CXSCREEN);
+                    int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+                    
+                    // Set window to full screen, borderless, and topmost
+                    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, screenWidth, screenHeight, 
+                        SWP_SHOWWINDOW | SWP_FRAMECHANGED);
+                    
+                    // Remove window decorations for true overlay effect
+                    LONG_PTR style = GetWindowLongPtr(hwnd, GWL_STYLE);
+                    style &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU);
+                    SetWindowLongPtr(hwnd, GWL_STYLE, style);
+                    
+                    SetForegroundWindow(hwnd);
+                }
+            }
+            
+            this->Activate();
+            m_isVisible = true;
+            
+            // Hide results initially
+            ResultsContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+            QuickActions().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+            
+            FocusSearchBox();
+        }
+    }
+
+    void MainWindow::HideWindow()
+    {
+        if (m_isVisible)
+        {
+            // Use Win32 API to hide the window
+            auto windowNative = this->try_as<::IWindowNative>();
+            if (windowNative)
+            {
+                HWND hwnd;
+                windowNative->get_WindowHandle(&hwnd);
+                if (hwnd)
+                {
+                    ::ShowWindow(hwnd, SW_HIDE);
+                }
+            }
+            
+            m_isVisible = false;
+            
+            // Clear search text and hide results when hiding
+            SearchTextBox().Text(L"");
+            SearchResults().ItemsSource(nullptr);
+            ResultsContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+            QuickActions().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         }
     }
 }

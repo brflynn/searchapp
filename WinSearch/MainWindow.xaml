@@ -9,57 +9,154 @@
     x:Name="MainWindow"
     SizeChanged="MainWindowSizeChanged">
     
-    <StackPanel Orientation="Vertical" VerticalAlignment="Top">
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Left">
-            <Button Content="Options" Margin="10,10,10,10">
-                <Button.Flyout>
-                    <MenuFlyout>
-                        <ToggleMenuFlyoutItem Text="Search File Contents" IsChecked="False" Click="ContentSearch_Clicked" x:Name="ContentSearchOption"/>
-                        <ToggleMenuFlyoutItem Text="Search Emails" IsChecked="False" IsEnabled="False" Click="EmailSearch_Clicked" x:Name="EmailSearchOption"/>
-                        <ToggleMenuFlyoutItem Text="Search Files Across All Users" IsChecked="False" IsEnabled="False" Click="AllUsersSearch_Clicked" x:Name="AllUsersSearchOption"/>
-                        <MenuFlyoutSeparator/>
-                        <MenuFlyoutItem Icon="Setting" Text="Change Windows Search Settings" Click="WindowsSearchSettings_Clicked" x:Name="WindowsSearchSettingsOption"/>
-                    </MenuFlyout>
-                </Button.Flyout>
-            </Button>
-            <Button Content="Generate Static Property Analysis" Margin="10,10,10,10" x:Name="PropertyAnalysis" Click="PropertyAnalysis_Clicked">
-            </Button>
-        </StackPanel>
-        <TextBox 
-            x:Name="SearchTextBox"
-            TextChanged="SearchTextChanged"
-            PlaceholderText="start typing to search"
-            HorizontalContentAlignment="Stretch"
-            HorizontalAlignment="Stretch"
-            FontSize="18">
-        </TextBox>
+    <!-- Full-screen overlay with semi-transparent background -->
+    <Grid Background="#AA000000">
+        <!-- Center the search interface -->
+        <StackPanel 
+            HorizontalAlignment="Center" 
+            VerticalAlignment="Top" 
+            Margin="0,150,0,0"
+            MaxWidth="800"
+            Width="800">
+            
+            <!-- Large search box -->
+            <Border 
+                Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+                BorderBrush="{ThemeResource SystemAccentColor}"
+                BorderThickness="2"
+                CornerRadius="25"
+                Margin="0,0,0,20">
+                <TextBox 
+                    x:Name="SearchTextBox"
+                    TextChanged="SearchTextChanged"
+                    PlaceholderText="Search files and content... (Ctrl+Shift+F to toggle)"
+                    HorizontalAlignment="Stretch"
+                    FontSize="24"
+                    Padding="20,15"
+                    BorderThickness="0"
+                    Background="Transparent"
+                    PlaceholderForeground="{ThemeResource TextFillColorSecondaryBrush}">
+                </TextBox>
+            </Border>
 
-        <ListView
-            x:Name="SearchResults"
-            HorizontalAlignment="Stretch"
-            VerticalAlignment="Stretch"
-            Width="Auto"
-            Height="Auto"
-            IsItemClickEnabled="True"
-            ItemClick="SearchResults_ItemClicked"
-            SelectionMode="None">
-            <ListView.ItemTemplate>
-                <DataTemplate x:Key="SearchResultTemplate" x:DataType="local:SearchResult" x:Name="SearchResultDataTemplate">
-                    <Grid x:Name="SearchResultGrid">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="25"></ColumnDefinition>
-                            <ColumnDefinition Width="Auto"></ColumnDefinition>
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition></RowDefinition>
-                            <RowDefinition></RowDefinition>
-                        </Grid.RowDefinitions>
-                        <Image x:Name="SearchResultThumbnail" Grid.RowSpan="2" Grid.Column="0" Grid.Row="0" Source="{x:Bind ItemImage}" />
-                        <TextBlock x:Name="SearchResultName" Grid.Column="1" Grid.Row="0" Text="{x:Bind ItemDisplayName}" FontSize="16"></TextBlock>
-                        <TextBlock x:Name="SearchResultDescription" Grid.Column="1" Grid.Row="1" Text="{x:Bind ItemUrl}" FontSize="12"></TextBlock>
-                    </Grid>
-                </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
-    </StackPanel>
+            <!-- Search results with opaque background -->
+            <Border 
+                x:Name="ResultsContainer"
+                Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+                BorderBrush="{ThemeResource SystemAccentColor}"
+                BorderThickness="1"
+                CornerRadius="10"
+                Visibility="Collapsed"
+                MaxHeight="500">
+                
+                <ScrollViewer 
+                    VerticalScrollBarVisibility="Auto"
+                    HorizontalScrollBarVisibility="Disabled">
+                    <ListView
+                        x:Name="SearchResults"
+                        HorizontalAlignment="Stretch"
+                        IsItemClickEnabled="True"
+                        ItemClick="SearchResults_ItemClicked"
+                        SelectionMode="None"
+                        Background="Transparent">
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:Key="SearchResultTemplate" x:DataType="local:SearchResult" x:Name="SearchResultDataTemplate">
+                                <Grid x:Name="SearchResultGrid" Margin="15,8" MinHeight="50">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="40"></ColumnDefinition>
+                                        <ColumnDefinition Width="*"></ColumnDefinition>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition></RowDefinition>
+                                        <RowDefinition></RowDefinition>
+                                    </Grid.RowDefinitions>
+                                    
+                                    <!-- File icon -->
+                                    <Border 
+                                        Grid.RowSpan="2" 
+                                        Grid.Column="0" 
+                                        Width="32" 
+                                        Height="32"
+                                        CornerRadius="4"
+                                        Background="{ThemeResource SystemAccentColorLight2}">
+                                        <Image 
+                                            x:Name="SearchResultThumbnail"
+                                            Source="{x:Bind ItemImage}" 
+                                            Width="24" 
+                                            Height="24"/>
+                                    </Border>
+                                    
+                                    <!-- File name -->
+                                    <TextBlock 
+                                        x:Name="SearchResultName" 
+                                        Grid.Column="1" 
+                                        Grid.Row="0" 
+                                        Text="{x:Bind ItemDisplayName}" 
+                                        FontSize="16"
+                                        FontWeight="SemiBold"
+                                        TextTrimming="CharacterEllipsis"
+                                        Margin="15,0,0,2"/>
+                                    
+                                    <!-- File path -->
+                                    <TextBlock 
+                                        x:Name="SearchResultDescription" 
+                                        Grid.Column="1" 
+                                        Grid.Row="1" 
+                                        Text="{x:Bind ItemUrl}" 
+                                        FontSize="12"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        TextTrimming="CharacterEllipsis"
+                                        Margin="15,0,0,0"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin" Value="0"/>
+                                <Setter Property="MinHeight" Value="0"/>
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                    </ListView>
+                </ScrollViewer>
+            </Border>
+            
+            <!-- Quick actions bar (optional) -->
+            <StackPanel 
+                x:Name="QuickActions"
+                Orientation="Horizontal" 
+                HorizontalAlignment="Center"
+                Margin="0,20,0,0"
+                Visibility="Collapsed">
+                
+                <Button 
+                    Content="Settings" 
+                    Click="WindowsSearchSettings_Clicked"
+                    Margin="5,0"
+                    Style="{ThemeResource AccentButtonStyle}"/>
+                    
+                <Button 
+                    Content="Options" 
+                    Margin="5,0">
+                    <Button.Flyout>
+                        <MenuFlyout>
+                            <ToggleMenuFlyoutItem Text="Search File Contents" IsChecked="True" Click="ContentSearch_Clicked" x:Name="ContentSearchOption"/>
+                            <ToggleMenuFlyoutItem Text="Search Emails" IsChecked="False" IsEnabled="False" Click="EmailSearch_Clicked" x:Name="EmailSearchOption"/>
+                            <ToggleMenuFlyoutItem Text="Search Files Across All Users" IsChecked="False" IsEnabled="False" Click="AllUsersSearch_Clicked" x:Name="AllUsersSearchOption"/>
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+            </StackPanel>
+        </StackPanel>
+        
+        <!-- Escape hint -->
+        <TextBlock 
+            Text="Press Ctrl+Shift+F to close"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Bottom"
+            Margin="0,0,0,50"
+            Foreground="#AAFFFFFF"
+            FontSize="14"/>
+    </Grid>
 </Window>

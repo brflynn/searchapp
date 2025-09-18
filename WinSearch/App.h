@@ -4,6 +4,7 @@
 #undef GetCurrentTime
 
 #include "App.xaml.g.h"
+#include "GlobalHotkeyManager.h"
 
 #pragma pop_macro("GetCurrentTime")
 
@@ -18,5 +19,8 @@ namespace winrt::WinSearch::implementation
 
     private:
         winrt::Microsoft::UI::Xaml::Window window{ nullptr };
+        std::unique_ptr<GlobalHotkeyManager> m_hotkeyManager;
+        
+        void OnSearchOverlayHotkey();
     };
 }

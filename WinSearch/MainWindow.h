@@ -15,6 +15,7 @@ namespace winrt::WinSearch::implementation
 
     public:
         MainWindow();
+        void FocusSearchBox();
         void SearchTextChanged(Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void MainWindowSizeChanged(Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::WindowSizeChangedEventArgs const& handler);
         void ContentSearch_Clicked(Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
@@ -23,6 +24,9 @@ namespace winrt::WinSearch::implementation
         void WindowsSearchSettings_Clicked(Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void SearchResults_ItemClicked(Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
         void PropertyAnalysis_Clicked(Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void ShowWindow();
+        void HideWindow();
+        bool IsWindowVisible() const { return m_isVisible; }
 
 
     private:
@@ -40,6 +44,7 @@ namespace winrt::WinSearch::implementation
         bool m_contentSearchEnabled{};
         bool m_mailSearchEnabled{};
         bool m_allUsersSearchEnabled{};
+        bool m_isVisible = false;
         winrt::Windows::Foundation::Collections::IVector<IInspectable> m_searchResults;
     };
 }

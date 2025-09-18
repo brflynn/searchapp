@@ -34,6 +34,7 @@ public:
     std::wstring GetPrimingQueryString() override;
 
 private:
+    bool IsContainsSemanticSupportedOnMachine();
     void ExecuteSyncInternal();
     void CreateSearchResult(IPropertyStore* propStore);
 
@@ -206,4 +207,12 @@ void SearchUXQueryHelper::Init(bool contentSearchEnabled, bool mailSearchEnabled
 DWORD SearchUXQueryHelper::GetCookie()
 {
     return m_cookie;
+}
+
+
+bool SearchUXQueryHelper::IsContainsSemanticSupportedOnMachine()
+{
+    // For now, return false as a safe default
+    // This can be implemented later with proper semantic search detection
+    return false;
 }

@@ -20,6 +20,9 @@ App::App()
     InitializeComponent();
     Suspending({ this, &App::OnSuspending });
 
+    // Initialize hotkey manager
+    m_hotkeyManager = std::make_unique<GlobalHotkeyManager>();
+
 #if defined _DEBUG && !defined DISABLE_XAML_GENERATED_BREAK_ON_UNHANDLED_EXCEPTION
     UnhandledException([this](IInspectable const&, UnhandledExceptionEventArgs const& e)
     {
@@ -40,7 +43,24 @@ App::App()
 void App::OnLaunched(LaunchActivatedEventArgs const&)
 {
     window = make<MainWindow>();
-    window.Activate();
+    
+    // Create the window but don't show it initially
+    // This ensures the app runs in the background until the hotkey is pressed
+    
+    // Register Ctrl+Shift+F hotkey
+    m_hotkeyManager->RegisterHotkey(
+        HOTKEY_SEARCH_OVERLAY,
+        SEARCH_HOTKEY_MODIFIERS,
+        SEARCH_HOTKEY_KEY,
+        [this]() { OnSearchOverlayHotkey(); }
+    );
+    
+    // Initialize the window as hidden
+    if (window)
+    {
+        auto mainWindow = window.as<winrt::WinSearch::implementation::MainWindow>();
+        // Don't call ShowWindow() or Activate() here - keep it hidden
+    }
 }
 
 /// <summary>
@@ -53,4 +73,25 @@ void App::OnLaunched(LaunchActivatedEventArgs const&)
 void App::OnSuspending([[maybe_unused]] IInspectable const& sender, [[maybe_unused]] Windows::ApplicationModel::SuspendingEventArgs const& e)
 {
     // Save application state and stop any background activity
+    if (m_hotkeyManager)
+    {
+        m_hotkeyManager->UnregisterHotkey(HOTKEY_SEARCH_OVERLAY);
+    }
+}
+
+void App::OnSearchOverlayHotkey()
+{
+    // Toggle window visibility when hotkey is pressed
+    if (window)
+    {
+        auto mainWindow = window.as<winrt::WinSearch::implementation::MainWindow>();
+        if (mainWindow->IsWindowVisible())
+        {
+            mainWindow->HideWindow();
+        }
+        else
+        {
+            mainWindow->ShowWindow();
+        }
+    }
 }
